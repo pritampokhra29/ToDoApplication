@@ -15,7 +15,7 @@ import com.example.demo.dto.UserDTO;
 import com.example.demo.service.UserService;
 
 @RestController
-@RequestMapping("/User/auth")
+@RequestMapping("/auth")
 public class UserController {
 
 	@Autowired
@@ -29,6 +29,21 @@ public class UserController {
 			return ResponseEntity.status(HttpStatus.CREATED).body("User registered: " + userDTO.getUsername());
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Registration failed for user: " + userDTO.getUsername());
+		}
+	}
+
+	@PostMapping("/login")
+	public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
+		try {
+			// This will trigger the UserDetailsService to load and authenticate the user
+			Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+			if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+				return ResponseEntity.ok("Login successful for user: " + auth.getName());
+			} else {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+			}
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed: " + e.getMessage());
 		}
 	}
 

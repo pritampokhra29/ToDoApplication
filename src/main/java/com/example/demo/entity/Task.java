@@ -45,9 +45,9 @@ public class Task {
 
     private Boolean deleted = false;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by", referencedColumnName = "id")
-    private User createdBy;
+    // @ManyToOne
+    // @JoinColumn(name = "created_by", referencedColumnName = "id")
+    // private User createdBy;
 
     private LocalDate completionDate;
 
@@ -64,4 +64,16 @@ public class Task {
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private java.util.Set<User> collaborators;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 }

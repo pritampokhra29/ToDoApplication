@@ -18,7 +18,8 @@ public class SpringSecurityConfiguration {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/User/auth/register").hasRole("ADMIN") // Only ADMIN can access register
+						.requestMatchers("/auth/login").permitAll() // Allow login endpoint
+						.requestMatchers("/auth/register").hasRole("ADMIN") // Restrict register endpoint to ADMIN role
 						.anyRequest().authenticated())
 				.userDetailsService(customUserDetailsService).httpBasic(httpBasic -> {
 				}); // disables default login page, uses HTTP Basic
