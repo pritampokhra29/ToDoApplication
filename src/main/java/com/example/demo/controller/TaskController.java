@@ -70,13 +70,136 @@ public class TaskController {
         return ResponseEntity.ok(task);
     }
 
-    // // Legacy: Get a specific task by ID using path variable (keeping for backward compatibility)
-    // @GetMapping("/{id}")
-    // public ResponseEntity<Task> getTaskByIdPath(@PathVariable Long id, Authentication authentication) {
-    //     String username = authentication.getName();
-    //     Task task = taskService.getTaskByIdAndUser(id, username);
-    //     return ResponseEntity.ok(task);
-    // }
+    // GET Search by query parameters 
+    @GetMapping("/search")
+    public ResponseEntity<List<Task>> searchTasksGet(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "SEARCH_TASKS_GET", "/tasks/search", 
+                "Searching tasks with parameters - title: " + title + ", description: " + description + 
+                ", status: " + status + ", priority: " + priority);
+        
+        // For now, let's implement a simple title search (you can expand this)
+        List<Task> tasks;
+        if (title != null && !title.trim().isEmpty()) {
+            tasks = taskService.searchTasksByKeyword(username, title);
+        } else {
+            // If no search parameters, return all tasks
+            tasks = taskService.getTasksByUser(username);
+        }
+        
+        logger.info("Search returned {} tasks for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // GET General filter endpoint with multiple query parameters
+    @GetMapping("/filter")
+    public ResponseEntity<List<Task>> filterTasks(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String description,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "FILTER_TASKS", "/tasks/filter", 
+                "Filtering tasks with parameters - status: " + status + ", priority: " + priority + 
+                ", title: " + title + ", description: " + description);
+        
+        List<Task> tasks;
+        
+        if (status != null && !status.trim().isEmpty()) {
+            tasks = taskService.getTasksByUserAndStatus(username, status);
+        } else if (priority != null && !priority.trim().isEmpty()) {
+            com.example.demo.constants.Priority priorityEnum = com.example.demo.constants.Priority.valueOf(priority.toUpperCase());
+            tasks = taskService.getTasksByUserAndPriority(username, priorityEnum);
+        } else if (title != null && !title.trim().isEmpty()) {
+            tasks = taskService.searchTasksByKeyword(username, title);
+        } else {
+            // If no filter parameters, return all tasks
+            tasks = taskService.getTasksByUser(username);
+        }
+        
+        logger.info("Filter returned {} tasks for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // GET Filter by status using query parameter
+    @GetMapping("/filter/status")
+    public ResponseEntity<List<Task>> getTasksByStatusGet(
+            @RequestParam String status,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "FILTER_BY_STATUS_GET", "/tasks/filter/status", 
+                "Filtering tasks by status: " + status);
+        
+        List<Task> tasks = taskService.getTasksByUserAndStatus(username, status);
+        
+        logger.info("Filter by status returned {} tasks for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // GET Tasks due today
+    @GetMapping("/due-today")
+    public ResponseEntity<List<Task>> getTasksDueToday(Authentication authentication) {
+        
+        String username = authentication.getName();
+        LocalDate today = LocalDate.now();
+        
+        logger.logUserActivity(username, "GET_TASKS_DUE_TODAY", "/tasks/due-today", 
+                "Getting tasks due today: " + today);
+        
+        List<Task> tasks = taskService.getTasksByUserAndDueDate(username, today);
+        
+        logger.info("Tasks due today returned {} tasks for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // GET Filter by priority using query parameter  
+    @GetMapping("/filter/priority")
+    public ResponseEntity<List<Task>> getTasksByPriorityGet(
+            @RequestParam String priority,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "FILTER_BY_PRIORITY_GET", "/tasks/filter/priority", 
+                "Filtering tasks by priority: " + priority);
+        
+        com.example.demo.constants.Priority priorityEnum = com.example.demo.constants.Priority.valueOf(priority.toUpperCase());
+        List<Task> tasks = taskService.getTasksByUserAndPriority(username, priorityEnum);
+        
+        logger.info("Filter by priority returned {} tasks for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // RESTful: Get a specific task by ID using path variable
+    @GetMapping("/{id}")
+    public ResponseEntity<Task> getTaskByIdPath(@PathVariable Long id, Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "GET_TASK_BY_ID", "/tasks/" + id, "Retrieving task with ID: " + id);
+        
+        Task task = taskService.getTaskByIdAndUser(id, username);
+        
+        logger.logBusinessOperation("GET_TASK", "Task", id.toString(), "READ", "SUCCESS");
+        
+        return ResponseEntity.ok(task);
+    }
 
     // Update a task using JSON body (includes task ID)
     @PostMapping("/update")
@@ -109,9 +232,21 @@ public class TaskController {
         return ResponseEntity.ok(updatedTask);
     }
 
-    // // Legacy: Update a task using path variable (keeping for backward compatibility)
-    // @PutMapping("/{id}")
-    // public ResponseEntity<Task> updateTaskPath(@PathVariable Long id, @RequestBody Task task, Authentication authentication) {
+    // RESTful: Update a task using path variable
+    @PutMapping("/{id}")
+    public ResponseEntity<Task> updateTaskPath(@PathVariable Long id, @RequestBody Task task, Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "UPDATE_TASK", "/tasks/" + id, "Updating task with ID: " + id);
+        logger.logBusinessOperation("UPDATE_TASK", "Task", id.toString(), "UPDATE", "INITIATED");
+        
+        Task updatedTask = taskService.updateTask(id, task, username);
+        
+        logger.logBusinessOperation("UPDATE_TASK", "Task", id.toString(), "UPDATE", "SUCCESS");
+        logger.logDataChange("Task", id.toString(), "UPDATE", task.toString(), updatedTask.toString());
+        
+        return ResponseEntity.ok(updatedTask);
+    }
     //     String username = authentication.getName();
     //     Task updatedTask = taskService.updateTask(id, task, username);
     //     return ResponseEntity.ok(updatedTask);
@@ -122,17 +257,31 @@ public class TaskController {
     public ResponseEntity<Map<String, String>> deleteTask(@RequestBody Map<String, Object> request, Authentication authentication) {
         String username = authentication.getName();
         Long id = Long.valueOf(request.get("id").toString());
+        
+        logger.logUserActivity(username, "DELETE_TASK", "/tasks/delete", "Deleting task with ID: " + id);
+        logger.logBusinessOperation("DELETE_TASK", "Task", id.toString(), "DELETE", "INITIATED");
+        
         taskService.deleteTask(id, username);
+        
+        logger.logBusinessOperation("DELETE_TASK", "Task", id.toString(), "DELETE", "SUCCESS");
+        
         return ResponseEntity.ok(Map.of("message", "Task deleted successfully", "taskId", id.toString()));
     }
 
-    // // Legacy: Delete a task using path variable (keeping for backward compatibility)
-    // @DeleteMapping("/{id}")
-    // public ResponseEntity<Void> deleteTaskPath(@PathVariable Long id, Authentication authentication) {
-    //     String username = authentication.getName();
-    //     taskService.deleteTask(id, username);
-    //     return ResponseEntity.noContent().build();
-    // }
+    // RESTful: Delete a task using path variable
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteTaskPath(@PathVariable Long id, Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "DELETE_TASK", "/tasks/" + id, "Deleting task with ID: " + id);
+        logger.logBusinessOperation("DELETE_TASK", "Task", id.toString(), "DELETE", "INITIATED");
+        
+        taskService.deleteTask(id, username);
+        
+        logger.logBusinessOperation("DELETE_TASK", "Task", id.toString(), "DELETE", "SUCCESS");
+        
+        return ResponseEntity.ok(Map.of("message", "Task deleted successfully", "taskId", id.toString()));
+    }
 
     // Add collaborator to a task
     @PostMapping("/collaborator/add")
