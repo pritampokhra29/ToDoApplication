@@ -238,4 +238,82 @@ public class TaskServiceImpl implements TaskService {
         ownedTasks.addAll(collaborativeTasks);
         return ownedTasks;
     }
+    
+    // **NEW: Pagination and Sorting methods**
+    @Override
+    public org.springframework.data.domain.Page<Task> getTasksByUserWithPagination(String username, org.springframework.data.domain.Pageable pageable) {
+        // For now, return paginated owned tasks only (can be enhanced to include collaborators)
+        return taskRepo.findByUserUsernameAndDeletedFalse(username, pageable);
+    }
+    
+    // **NEW: Search functionality**
+    @Override
+    public List<Task> searchTasksByKeyword(String username, String keyword) {
+        // Get owned tasks matching keyword
+        List<Task> ownedTasks = taskRepo.findByUserUsernameAndKeywordInTitleOrDescription(username, keyword);
+        
+        // TODO: Add collaborator search logic if needed
+        return ownedTasks;
+    }
+    
+    @Override
+    public org.springframework.data.domain.Page<Task> searchTasksByKeywordWithPagination(String username, String keyword, org.springframework.data.domain.Pageable pageable) {
+        return taskRepo.findByUserUsernameAndKeywordInTitleOrDescription(username, keyword, pageable);
+    }
+    
+    // **NEW: Due date filtering**
+    @Override
+    public List<Task> getTasksByUserAndDueDate(String username, java.time.LocalDate dueDate) {
+        // Get owned tasks with specific due date
+        List<Task> ownedTasks = taskRepo.findByUserUsernameAndDueDateAndDeletedFalse(username, dueDate);
+        
+        // Get all tasks with due date to check for collaborations
+        List<Task> allTasks = taskRepo.findAllByDeletedFalse();
+        
+        // Find tasks where user is a collaborator with specific due date
+        List<Task> collaborativeTasks = allTasks.stream()
+            .filter(task -> !task.getUser().getUsername().equals(username)) // Not owned by user
+            .filter(task -> dueDate.equals(task.getDueDate())) // Has the required due date
+            .filter(task -> task.getCollaborators() != null && 
+                          task.getCollaborators().stream()
+                              .anyMatch(collaborator -> collaborator.getUsername().equals(username)))
+            .collect(java.util.stream.Collectors.toList());
+        
+        // Combine owned and collaborative tasks
+        ownedTasks.addAll(collaborativeTasks);
+        return ownedTasks;
+    }
+    
+    @Override
+    public List<Task> getTasksByUserAndDueDateRange(String username, java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        List<Task> ownedTasks = taskRepo.findByUserUsernameAndDueDateBetweenAndDeletedFalse(username, startDate, endDate);
+        
+        // TODO: Add collaborator logic for date range if needed
+        return ownedTasks;
+    }
+    
+    @Override
+    public List<Task> getTasksDueBefore(String username, java.time.LocalDate date) {
+        return taskRepo.findByUserUsernameAndDueDateBeforeAndDeletedFalse(username, date);
+    }
+    
+    @Override
+    public List<Task> getTasksDueAfter(String username, java.time.LocalDate date) {
+        return taskRepo.findByUserUsernameAndDueDateAfterAndDeletedFalse(username, date);
+    }
+    
+    // **NEW: Advanced filtering with pagination**
+    @Override
+    public org.springframework.data.domain.Page<Task> getTasksWithFilters(String username, String status, String category, java.time.LocalDate dueDate, org.springframework.data.domain.Pageable pageable) {
+        com.example.demo.constants.Status statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try {
+                statusEnum = com.example.demo.constants.Status.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                // Invalid status, ignore
+            }
+        }
+        
+        return taskRepo.findTasksWithFilters(username, statusEnum, category, dueDate, pageable);
+    }
 }

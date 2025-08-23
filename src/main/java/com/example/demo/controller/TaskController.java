@@ -3,10 +3,15 @@ package com.example.demo.controller;
 import com.example.demo.entity.Task;
 import com.example.demo.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -153,6 +158,122 @@ public class TaskController {
         String priorityStr = request.get("priority").toString();
         com.example.demo.constants.Priority priority = com.example.demo.constants.Priority.valueOf(priorityStr);
         List<Task> tasks = taskService.getTasksByUserAndPriority(username, priority);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Pagination and Sorting**
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<Task>> getTasksWithPagination(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<Task> tasks = taskService.getTasksByUserWithPagination(username, pageable);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Search by keyword**
+    @PostMapping("/search")
+    public ResponseEntity<List<Task>> searchTasks(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        String keyword = request.get("keyword").toString();
+        List<Task> tasks = taskService.searchTasksByKeyword(username, keyword);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Search with pagination**
+    @PostMapping("/search/paginated")
+    public ResponseEntity<Page<Task>> searchTasksWithPagination(
+            @RequestBody Map<String, Object> request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        String keyword = request.get("keyword").toString();
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<Task> tasks = taskService.searchTasksByKeywordWithPagination(username, keyword, pageable);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Filter by due date**
+    @PostMapping("/filter/duedate")
+    public ResponseEntity<List<Task>> getTasksByDueDate(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        String dueDateStr = request.get("dueDate").toString();
+        LocalDate dueDate = LocalDate.parse(dueDateStr);
+        List<Task> tasks = taskService.getTasksByUserAndDueDate(username, dueDate);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Filter by due date range**
+    @PostMapping("/filter/duedate/range")
+    public ResponseEntity<List<Task>> getTasksByDueDateRange(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        String startDateStr = request.get("startDate").toString();
+        String endDateStr = request.get("endDate").toString();
+        LocalDate startDate = LocalDate.parse(startDateStr);
+        LocalDate endDate = LocalDate.parse(endDateStr);
+        List<Task> tasks = taskService.getTasksByUserAndDueDateRange(username, startDate, endDate);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Get tasks due before a date**
+    @PostMapping("/filter/duedate/before")
+    public ResponseEntity<List<Task>> getTasksDueBefore(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        String dateStr = request.get("date").toString();
+        LocalDate date = LocalDate.parse(dateStr);
+        List<Task> tasks = taskService.getTasksDueBefore(username, date);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Get tasks due after a date**
+    @PostMapping("/filter/duedate/after")
+    public ResponseEntity<List<Task>> getTasksDueAfter(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        String dateStr = request.get("date").toString();
+        LocalDate date = LocalDate.parse(dateStr);
+        List<Task> tasks = taskService.getTasksDueAfter(username, date);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Advanced filtering with pagination**
+    @GetMapping("/advanced")
+    public ResponseEntity<Page<Task>> getTasksWithAdvancedFilters(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String dueDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "dueDate") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        LocalDate dueDateParsed = null;
+        if (dueDate != null && !dueDate.isEmpty()) {
+            dueDateParsed = LocalDate.parse(dueDate);
+        }
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<Task> tasks = taskService.getTasksWithFilters(username, status, category, dueDateParsed, pageable);
         return ResponseEntity.ok(tasks);
     }
 }
