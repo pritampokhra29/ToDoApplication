@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.entity.Task;
 import com.example.demo.service.TaskService;
+import com.example.demo.util.CustomLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,8 @@ import java.util.Map;
 @RequestMapping("/tasks")
 public class TaskController {
 
+    private static final CustomLogger logger = CustomLogger.getLogger(TaskController.class);
+
     @Autowired
     private TaskService taskService;
 
@@ -26,7 +29,15 @@ public class TaskController {
     @PostMapping
     public ResponseEntity<Task> createTask(@RequestBody Task task, Authentication authentication) {
         String username = authentication.getName();
+        
+        logger.logUserActivity(username, "CREATE_TASK", "/tasks", "Creating new task: " + task.getTitle());
+        logger.logBusinessOperation("CREATE_TASK", "Task", null, "CREATE", "INITIATED");
+        
         Task createdTask = taskService.createTask(task, username);
+        
+        logger.logBusinessOperation("CREATE_TASK", "Task", createdTask.getId().toString(), "CREATE", "SUCCESS");
+        logger.logDataChange("Task", createdTask.getId().toString(), "CREATE", null, createdTask.toString());
+        
         return ResponseEntity.ok(createdTask);
     }
 
@@ -34,7 +45,13 @@ public class TaskController {
     @GetMapping
     public ResponseEntity<List<Task>> getAllTasks(Authentication authentication) {
         String username = authentication.getName();
+        
+        logger.logUserActivity(username, "GET_ALL_TASKS", "/tasks", "Retrieving all tasks for user");
+        
         List<Task> tasks = taskService.getTasksByUser(username);
+        
+        logger.info("Retrieved {} tasks for user: {}", tasks.size(), username);
+        
         return ResponseEntity.ok(tasks);
     }
 
@@ -43,7 +60,13 @@ public class TaskController {
     public ResponseEntity<Task> getTaskById(@RequestBody Map<String, Object> request, Authentication authentication) {
         String username = authentication.getName();
         Long id = Long.valueOf(request.get("id").toString());
+        
+        logger.logUserActivity(username, "GET_TASK_BY_ID", "/tasks/get", "Retrieving task with ID: " + id);
+        
         Task task = taskService.getTaskByIdAndUser(id, username);
+        
+        logger.logBusinessOperation("GET_TASK", "Task", id.toString(), "READ", "SUCCESS");
+        
         return ResponseEntity.ok(task);
     }
 
