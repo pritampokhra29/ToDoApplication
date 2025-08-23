@@ -214,4 +214,28 @@ public class TaskServiceImpl implements TaskService {
         ownedTasks.addAll(collaborativeTasks);
         return ownedTasks;
     }
+    
+    // Enhanced method to get tasks by priority including collaborator access
+    public List<Task> getTasksByUserAndPriority(String username, com.example.demo.constants.Priority priority) {
+        // Get owned tasks with specific priority
+        List<Task> ownedTasks = taskRepo.findByUserUsernameAndDeletedFalse(username).stream()
+            .filter(task -> priority.equals(task.getPriority()))
+            .collect(java.util.stream.Collectors.toList());
+        
+        // Get all tasks to check for collaborations
+        List<Task> allTasks = taskRepo.findAllByDeletedFalse();
+        
+        // Find tasks where user is a collaborator with specific priority
+        List<Task> collaborativeTasks = allTasks.stream()
+            .filter(task -> !task.getUser().getUsername().equals(username)) // Not owned by user
+            .filter(task -> priority.equals(task.getPriority())) // Has the required priority
+            .filter(task -> task.getCollaborators() != null && 
+                          task.getCollaborators().stream()
+                              .anyMatch(collaborator -> collaborator.getUsername().equals(username)))
+            .collect(java.util.stream.Collectors.toList());
+        
+        // Combine owned and collaborative tasks
+        ownedTasks.addAll(collaborativeTasks);
+        return ownedTasks;
+    }
 }

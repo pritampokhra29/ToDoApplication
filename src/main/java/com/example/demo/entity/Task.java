@@ -2,6 +2,7 @@ package com.example.demo.entity;
 
 import java.time.LocalDate;
 
+import com.example.demo.constants.Priority;
 import com.example.demo.constants.Status;
 
 import jakarta.persistence.Entity;
@@ -45,16 +46,14 @@ public class Task {
 
     private Boolean deleted = false;
 
-    // @ManyToOne
-    // @JoinColumn(name = "created_by", referencedColumnName = "id")
-    // private User createdBy;
-
+    
     private LocalDate completionDate;
 
     // New attributes
     private String category;
 
-    private String priority;
+    @Enumerated(EnumType.STRING)
+    private Priority priority;
 
     // Collaboration: collection of users
     @ManyToMany

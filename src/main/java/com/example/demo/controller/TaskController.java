@@ -74,7 +74,7 @@ public class TaskController {
             task.setCategory(request.get("category").toString());
         }
         if (request.containsKey("priority")) {
-            task.setPriority(request.get("priority").toString());
+            task.setPriority(com.example.demo.constants.Priority.valueOf(request.get("priority").toString()));
         }
         
         Task updatedTask = taskService.updateTask(id, task, username);
@@ -143,6 +143,16 @@ public class TaskController {
         String username = authentication.getName();
         String category = request.get("category").toString();
         List<Task> tasks = taskService.getTasksByUserAndCategory(username, category);
+        return ResponseEntity.ok(tasks);
+    }
+
+    // Get tasks by priority
+    @PostMapping("/filter/priority")
+    public ResponseEntity<List<Task>> getTasksByPriority(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        String priorityStr = request.get("priority").toString();
+        com.example.demo.constants.Priority priority = com.example.demo.constants.Priority.valueOf(priorityStr);
+        List<Task> tasks = taskService.getTasksByUserAndPriority(username, priority);
         return ResponseEntity.ok(tasks);
     }
 }

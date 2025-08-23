@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.constants.Priority;
 import com.example.demo.entity.Task;
 
 import java.util.List;
@@ -24,4 +25,6 @@ public interface TaskService {
     List<Task> getTasksByUserAndStatus(String username, String status);
     
     List<Task> getTasksByUserAndCategory(String username, String category);
+    
+    List<Task> getTasksByUserAndPriority(String username, Priority priority);
 }
