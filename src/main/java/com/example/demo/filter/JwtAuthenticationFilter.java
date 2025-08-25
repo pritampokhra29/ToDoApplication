@@ -179,6 +179,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.equals("/debug/auth") ||  // Temporarily allow debug endpoint
                path.startsWith("/h2-console") ||
                path.startsWith("/actuator") ||
+               path.startsWith("/swagger-ui") ||
+               path.startsWith("/v3/api-docs") ||
+               path.equals("/swagger-ui.html") ||
+               path.startsWith("/swagger-resources") ||
+               path.startsWith("/webjars") ||
                path.equals("/favicon.ico");
     }
 }

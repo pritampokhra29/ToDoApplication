@@ -71,7 +71,8 @@ public class SpringSecurityConfiguration {
 					.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 					.authorizeHttpRequests(auth -> auth
 							.requestMatchers("/auth/login", "/auth/refresh", "/auth/validate", "/auth/status", "/auth/config").permitAll() 
-							.requestMatchers("/h2-console/**").permitAll() 
+							.requestMatchers("/h2-console/**").permitAll()
+							.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
 							.anyRequest().authenticated())
 					.userDetailsService(customUserDetailsService)
 					.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -87,6 +88,7 @@ public class SpringSecurityConfiguration {
 					.authorizeHttpRequests(auth -> auth
 							.requestMatchers("/auth/config", "/auth/register").permitAll()
 							.requestMatchers("/h2-console/**").permitAll()
+							.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
 							.anyRequest().authenticated())
 					.httpBasic(basic -> basic.realmName("ToDo Application"))
 					.userDetailsService(customUserDetailsService)

@@ -1,11 +1,28 @@
 package com.example.demo.dto;
 
+import jakarta.validation.constraints.*;
+
 public class UserUpdateDTO {
+    @NotNull(message = "User ID is required")
+    @Positive(message = "User ID must be positive")
     private Long id;
+    
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9_]*$", message = "Username can only contain letters, numbers, and underscores")
     private String username;
+    
+    @Email(message = "Email should be valid")
+    @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
+    
+    @Pattern(regexp = "^(USER|ADMIN)?$", message = "Role must be either USER or ADMIN")
     private String role;
+    
     private Boolean isActive;
+    
+    @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$|^$", 
+            message = "Password must contain at least one lowercase letter, one uppercase letter, and one digit")
     private String password; // Optional - only if admin wants to change password
 
     // Default constructor

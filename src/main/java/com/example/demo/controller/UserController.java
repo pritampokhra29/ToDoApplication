@@ -1,25 +1,30 @@
 package com.example.demo.controller;
 
 import com.example.demo.config.JwtProperties;
-import com.example.demo.dto.JwtAuthenticationResponse;
-import com.example.demo.dto.LogoutRequest;
-import com.example.demo.dto.RefreshTokenRequest;
-import com.example.demo.dto.UserResponseDTO;
-import com.example.demo.dto.UserUpdateDTO;
-import com.example.demo.dto.UserNameDTO;
+import com.example.demo.dto.*;
 import com.example.demo.service.AuthenticationService;
 import com.example.demo.service.TokenBlacklistService;
 import com.example.demo.util.CustomLogger;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.demo.dto.UserDTO;
 import com.example.demo.service.UserService;
 
 import java.util.HashMap;
@@ -28,6 +33,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
+@Validated
+@Tag(name = "User Management", description = "APIs for user registration, authentication, and management")
 public class UserController {
 
 	private static final CustomLogger logger = CustomLogger.getLogger(UserController.class);
@@ -45,7 +52,17 @@ public class UserController {
 	private TokenBlacklistService tokenBlacklistService;
 
 	@PostMapping("/register")
-	public ResponseEntity<?> register(@RequestBody UserDTO userDTO) {
+	@Operation(summary = "Register a new user", 
+			   description = "Register a new user with username, email, and password. Only authenticated users can register new users. Admin role required to create admin users.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "User registered successfully",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "400", description = "Validation failed or user already exists",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "401", description = "Authentication required",
+						content = @Content(schema = @Schema(implementation = String.class)))
+	})
+	public ResponseEntity<?> register(@Valid @RequestBody UserDTO userDTO) {
 		// Extract current authentication to check roles
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		
@@ -104,6 +121,14 @@ public class UserController {
 	}
 
 	@GetMapping("/users/active")
+	@Operation(summary = "Get active users for collaboration", 
+			   description = "Get list of all active users (excluding the current user) for task collaboration. Any authenticated user can access this.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Active users retrieved successfully",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "401", description = "Authentication required"),
+			@ApiResponse(responseCode = "500", description = "Internal server error")
+	})
 	public ResponseEntity<?> getActiveUsers() {
 		// Extract current authentication - any authenticated user can access this
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -144,6 +169,14 @@ public class UserController {
 	}
 
 	@GetMapping("/admin/users")
+	@Operation(summary = "Get all users (Admin only)", 
+			   description = "Retrieve a list of all registered users with their details. Admin role required.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Users retrieved successfully",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "401", description = "Authentication required"),
+			@ApiResponse(responseCode = "403", description = "Admin access required")
+	})
 	public ResponseEntity<?> getAllUsers() {
 		// Extract current authentication to check roles
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -195,7 +228,20 @@ public class UserController {
 	}
 
 	@PostMapping("/admin/users/{id}")
-	public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserUpdateDTO userUpdateDTO) {
+	@Operation(summary = "Update user (Admin only)", 
+			   description = "Update user details including role and status. Admin role required.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "User updated successfully",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "400", description = "Validation failed or user not found",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "401", description = "Authentication required"),
+			@ApiResponse(responseCode = "403", description = "Admin access required")
+	})
+	public ResponseEntity<?> updateUser(
+			@Parameter(description = "User ID to update", required = true) 
+			@PathVariable @Positive(message = "User ID must be positive") Long id, 
+			@Valid @RequestBody UserUpdateDTO userUpdateDTO) {
 		// Extract current authentication to check roles
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		
@@ -272,10 +318,21 @@ public class UserController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
+	@Operation(summary = "User login", 
+			   description = "Authenticate user with username and password to get JWT tokens")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Login successful",
+						content = @Content(schema = @Schema(implementation = JwtAuthenticationResponse.class))),
+			@ApiResponse(responseCode = "400", description = "Validation failed",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "401", description = "Invalid credentials",
+						content = @Content(schema = @Schema(implementation = Map.class))),
+			@ApiResponse(responseCode = "405", description = "JWT authentication disabled")
+	})
+	public ResponseEntity<?> login(@Valid @RequestBody LoginDTO loginDTO) {
 		// Check if JWT is enabled
 		if (!jwtProperties.isEnabled()) {
-			logger.logSecurityEvent("JWT_DISABLED_LOGIN", userDTO.getUsername(),
+			logger.logSecurityEvent("JWT_DISABLED_LOGIN", loginDTO.getUsername(),
 					"Login attempt when JWT is disabled", "MEDIUM");
 			
 			Map<String, String> errorResponse = new HashMap<>();
@@ -287,19 +344,24 @@ public class UserController {
 		}
 		
 		try {
-			logger.logUserActivity(userDTO.getUsername(), "LOGIN_ATTEMPT", "/auth/login", 
+			logger.logUserActivity(loginDTO.getUsername(), "LOGIN_ATTEMPT", "/auth/login", 
 					"User attempting JWT login");
 
+			// Convert LoginDTO to UserDTO for authentication service
+			UserDTO userDTO = new UserDTO();
+			userDTO.setUsername(loginDTO.getUsername());
+			userDTO.setPassword(loginDTO.getPassword());
+			
 			JwtAuthenticationResponse response = authenticationService.authenticateUser(userDTO);
 			
-			logger.logBusinessOperation("USER_LOGIN", "User", userDTO.getUsername(), "AUTHENTICATE", "SUCCESS");
+			logger.logBusinessOperation("USER_LOGIN", "User", loginDTO.getUsername(), "AUTHENTICATE", "SUCCESS");
 			
 			return ResponseEntity.ok(response);
 			
 		} catch (Exception e) {
-			logger.logSecurityEvent("LOGIN_FAILED", userDTO.getUsername(), 
+			logger.logSecurityEvent("LOGIN_FAILED", loginDTO.getUsername(), 
 					"Login failed: " + e.getMessage(), "MEDIUM");
-			logger.logBusinessOperation("USER_LOGIN", "User", userDTO.getUsername(), "AUTHENTICATE", "FAILED");
+			logger.logBusinessOperation("USER_LOGIN", "User", loginDTO.getUsername(), "AUTHENTICATE", "FAILED");
 			
 			Map<String, String> errorResponse = new HashMap<>();
 			errorResponse.put("error", "Authentication failed");
