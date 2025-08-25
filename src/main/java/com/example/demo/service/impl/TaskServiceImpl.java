@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class TaskServiceImpl implements TaskService {
@@ -118,7 +120,22 @@ public class TaskServiceImpl implements TaskService {
         
         // Update collaborators if provided
         if (task.getCollaborators() != null) {
-            existingTask.setCollaborators(task.getCollaborators());
+            // Create a Set to automatically handle duplicates based on User entity equals/hashCode
+            // Note: If User entity doesn't override equals/hashCode properly, we'll use a LinkedHashSet
+            // and filter by ID to ensure no duplicate user IDs
+            Set<User> uniqueCollaborators = new LinkedHashSet<>();
+            Set<Long> addedUserIds = new HashSet<>();
+            
+            for (User collaborator : task.getCollaborators()) {
+                if (collaborator != null && collaborator.getId() != null) {
+                    if (!addedUserIds.contains(collaborator.getId())) {
+                        uniqueCollaborators.add(collaborator);
+                        addedUserIds.add(collaborator.getId());
+                    }
+                }
+            }
+            
+            existingTask.setCollaborators(uniqueCollaborators);
         }
         
         // Always update the timestamp
@@ -142,6 +159,36 @@ public class TaskServiceImpl implements TaskService {
         Task task = getTaskByIdAndUser(taskId, taskOwnerUsername);
         User collaborator = userRepo.findByUsername(collaboratorUsername)
                 .orElseThrow(() -> new RuntimeException("Collaborator user not found"));
+        
+        // Check if collaborator is already added using database query
+        boolean isAlreadyCollaborator = taskRepo.existsCollaboratorByTaskIdAndUserId(taskId, collaborator.getId());
+        
+        if (isAlreadyCollaborator) {
+            throw new RuntimeException("User '" + collaboratorUsername + "' is already a collaborator on this task");
+        }
+        
+        if (task.getCollaborators() == null) {
+            task.setCollaborators(new HashSet<>());
+        }
+        
+        task.getCollaborators().add(collaborator);
+        task.setUpdateDate(LocalDate.now());
+        
+        return taskRepo.save(task);
+    }
+    
+    // New method to add collaborator by user ID
+    public Task addCollaboratorById(Long taskId, String taskOwnerUsername, Long collaboratorUserId) {
+        Task task = getTaskByIdAndUser(taskId, taskOwnerUsername);
+        User collaborator = userRepo.findById(collaboratorUserId)
+                .orElseThrow(() -> new RuntimeException("Collaborator user with ID " + collaboratorUserId + " not found"));
+        
+        // Check if collaborator is already added using database query
+        boolean isAlreadyCollaborator = taskRepo.existsCollaboratorByTaskIdAndUserId(taskId, collaboratorUserId);
+        
+        if (isAlreadyCollaborator) {
+            throw new RuntimeException("User with ID " + collaboratorUserId + " ('" + collaborator.getUsername() + "') is already a collaborator on this task");
+        }
         
         if (task.getCollaborators() == null) {
             task.setCollaborators(new HashSet<>());

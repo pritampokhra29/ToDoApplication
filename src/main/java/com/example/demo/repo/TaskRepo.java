@@ -70,4 +70,8 @@ public interface TaskRepo extends JpaRepository<Task, Long> {
                                    @Param("category") String category,
                                    @Param("dueDate") LocalDate dueDate,
                                    Pageable pageable);
+    
+    // **NEW: Check if a user is already a collaborator on a task**
+    @Query("SELECT COUNT(t) > 0 FROM Task t JOIN t.collaborators c WHERE t.id = :taskId AND c.id = :userId")
+    boolean existsCollaboratorByTaskIdAndUserId(@Param("taskId") Long taskId, @Param("userId") Long userId);
 }

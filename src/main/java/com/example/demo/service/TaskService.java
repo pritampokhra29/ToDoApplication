@@ -24,6 +24,8 @@ public interface TaskService {
     // Existing enhanced functionality
     Task addCollaborator(Long taskId, String taskOwnerUsername, String collaboratorUsername);
     
+    Task addCollaboratorById(Long taskId, String taskOwnerUsername, Long collaboratorUserId);
+    
     Task removeCollaborator(Long taskId, String taskOwnerUsername, String collaboratorUsername);
     
     List<Task> getTasksByUserAndStatus(String username, String status);

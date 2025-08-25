@@ -4,6 +4,9 @@ import com.example.demo.config.JwtProperties;
 import com.example.demo.dto.JwtAuthenticationResponse;
 import com.example.demo.dto.LogoutRequest;
 import com.example.demo.dto.RefreshTokenRequest;
+import com.example.demo.dto.UserResponseDTO;
+import com.example.demo.dto.UserUpdateDTO;
+import com.example.demo.dto.UserNameDTO;
 import com.example.demo.service.AuthenticationService;
 import com.example.demo.service.TokenBlacklistService;
 import com.example.demo.util.CustomLogger;
@@ -20,6 +23,7 @@ import com.example.demo.dto.UserDTO;
 import com.example.demo.service.UserService;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -81,15 +85,189 @@ public class UserController {
 		}
 		
 		logger.logUserActivity("admin", "REGISTER_USER", "/auth/register", 
-				"Admin attempting to register user: " + userDTO.getUsername());
+				"Admin attempting to register user: " + userDTO.getUsername() + " with role: " + 
+				(userDTO.getRole() != null ? userDTO.getRole() : "USER (default)"));
 		
 		boolean isRegistered = userService.registerUser(userDTO);
 		if (isRegistered) {
 			logger.logBusinessOperation("USER_REGISTRATION", "User", userDTO.getUsername(), "CREATE", "SUCCESS");
-			return ResponseEntity.status(HttpStatus.CREATED).body("User registered: " + userDTO.getUsername());
+			
+			String roleMessage = userDTO.getRole() != null && !userDTO.getRole().trim().isEmpty() ? 
+					userDTO.getRole().trim().toUpperCase() : "USER";
+			
+			return ResponseEntity.status(HttpStatus.CREATED)
+					.body("User registered successfully: " + userDTO.getUsername() + " with role: " + roleMessage);
 		} else {
 			logger.logBusinessOperation("USER_REGISTRATION", "User", userDTO.getUsername(), "CREATE", "FAILED");
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Registration failed for user: " + userDTO.getUsername());
+		}
+	}
+
+	@GetMapping("/users/active")
+	public ResponseEntity<?> getActiveUsers() {
+		// Extract current authentication - any authenticated user can access this
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		
+		if (auth == null || !auth.isAuthenticated()) {
+			logger.logSecurityEvent("ACTIVE_USERS_UNAUTHORIZED", "anonymous", 
+					"Attempted to access active users without authentication", "MEDIUM");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication required");
+		}
+		
+		try {
+			logger.logUserActivity(auth.getName(), "GET_ACTIVE_USERS", "/auth/users/active", 
+					"User retrieving active users for task collaboration");
+			
+			// Get active users excluding the current logged-in user
+			List<UserNameDTO> activeUsers = userService.getActiveUserNames(auth.getName());
+			
+			Map<String, Object> response = new HashMap<>();
+			response.put("success", true);
+			response.put("totalActiveUsers", activeUsers.size());
+			response.put("users", activeUsers);
+			response.put("message", "Active users retrieved successfully (excluding current user)");
+			
+			logger.logBusinessOperation("USER_ACTIVE_LIST", "User", auth.getName(), "READ", "SUCCESS");
+			
+			return ResponseEntity.ok(response);
+			
+		} catch (Exception e) {
+			logger.logException("ACTIVE_USERS_ERROR", e, "Error retrieving active users");
+			logger.logBusinessOperation("USER_ACTIVE_LIST", "User", auth.getName(), "READ", "FAILED");
+			
+			Map<String, String> errorResponse = new HashMap<>();
+			errorResponse.put("error", "Failed to retrieve active users");
+			errorResponse.put("message", e.getMessage());
+			
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+		}
+	}
+
+	@GetMapping("/admin/users")
+	public ResponseEntity<?> getAllUsers() {
+		// Extract current authentication to check roles
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		
+		if (auth == null || !auth.isAuthenticated()) {
+			logger.logSecurityEvent("ADMIN_USERS_UNAUTHORIZED", "anonymous", 
+					"Attempted to access user list without authentication", "HIGH");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication required");
+		}
+		
+		// Check if user has ADMIN role
+		boolean hasAdminRole = auth.getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+		
+		if (!hasAdminRole) {
+			logger.logSecurityEvent("ADMIN_USERS_FORBIDDEN", auth.getName(), 
+					"Attempted to access user list without ADMIN role. Authorities: " + auth.getAuthorities(), "HIGH");
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin access required");
+		}
+		
+		try {
+			logger.logUserActivity(auth.getName(), "GET_ALL_USERS", "/auth/admin/users", 
+					"Admin retrieving all users list");
+			
+			List<UserResponseDTO> users = userService.getAllUsers();
+			
+			Map<String, Object> response = new HashMap<>();
+			response.put("success", true);
+			response.put("totalUsers", users.size());
+			response.put("users", users);
+			response.put("message", "Users retrieved successfully");
+			
+			logger.logBusinessOperation("ADMIN_USER_LIST", "Admin", auth.getName(), "READ", "SUCCESS");
+			logger.logSecurityEvent("ADMIN_ACCESS_GRANTED", auth.getName(), 
+					"Admin successfully accessed user list", "LOW");
+			
+			return ResponseEntity.ok(response);
+			
+		} catch (Exception e) {
+			logger.logException("ADMIN_USERS_ERROR", e, "Error retrieving users list");
+			logger.logBusinessOperation("ADMIN_USER_LIST", "Admin", auth.getName(), "READ", "FAILED");
+			
+			Map<String, String> errorResponse = new HashMap<>();
+			errorResponse.put("error", "Failed to retrieve users");
+			errorResponse.put("message", e.getMessage());
+			
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+		}
+	}
+
+	@PostMapping("/admin/users/{id}")
+	public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserUpdateDTO userUpdateDTO) {
+		// Extract current authentication to check roles
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		
+		if (auth == null || !auth.isAuthenticated()) {
+			logger.logSecurityEvent("ADMIN_USER_UPDATE_UNAUTHORIZED", "anonymous", 
+					"Attempted to update user without authentication", "HIGH");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication required");
+		}
+		
+		// Check if user has ADMIN role
+		boolean hasAdminRole = auth.getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+		
+		if (!hasAdminRole) {
+			logger.logSecurityEvent("ADMIN_USER_UPDATE_FORBIDDEN", auth.getName(), 
+					"Attempted to update user without ADMIN role. Authorities: " + auth.getAuthorities(), "HIGH");
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin access required");
+		}
+		
+		// Validate that user ID is provided
+		if (id == null) {
+			logger.logUserActivity(auth.getName(), "UPDATE_USER_VALIDATION_FAILED", "/auth/admin/users/" + id, 
+					"User update failed: ID is required");
+			
+			Map<String, String> errorResponse = new HashMap<>();
+			errorResponse.put("error", "Validation failed");
+			errorResponse.put("message", "User ID is required");
+			
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+		}
+		
+		// Set the ID from path parameter to the DTO
+		userUpdateDTO.setId(id);
+		
+		try {
+			logger.logUserActivity(auth.getName(), "UPDATE_USER", "/auth/admin/users/" + id, 
+					"Admin attempting to update user ID: " + id);
+			
+			UserResponseDTO updatedUser = userService.updateUser(userUpdateDTO);
+			
+			Map<String, Object> response = new HashMap<>();
+			response.put("success", true);
+			response.put("user", updatedUser);
+			response.put("message", "User updated successfully");
+			
+			logger.logBusinessOperation("ADMIN_USER_UPDATE", "User", updatedUser.getUsername(), "UPDATE", "SUCCESS");
+			logger.logSecurityEvent("ADMIN_USER_MODIFIED", auth.getName(), 
+					"Admin successfully updated user: " + updatedUser.getUsername() + " (ID: " + updatedUser.getId() + ")", "MEDIUM");
+			
+			return ResponseEntity.ok(response);
+			
+		} catch (IllegalArgumentException e) {
+			// Handle validation errors (user not found, invalid data, etc.)
+			logger.logUserActivity(auth.getName(), "UPDATE_USER_VALIDATION_FAILED", "/auth/admin/users/update", 
+					"User update validation failed: " + e.getMessage());
+			logger.logBusinessOperation("ADMIN_USER_UPDATE", "User", userUpdateDTO.getId().toString(), "UPDATE", "VALIDATION_FAILED");
+			
+			Map<String, String> errorResponse = new HashMap<>();
+			errorResponse.put("error", "Validation failed");
+			errorResponse.put("message", e.getMessage());
+			
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+			
+		} catch (Exception e) {
+			logger.logException("ADMIN_USER_UPDATE_ERROR", e, "Error updating user");
+			logger.logBusinessOperation("ADMIN_USER_UPDATE", "User", userUpdateDTO.getId().toString(), "UPDATE", "FAILED");
+			
+			Map<String, String> errorResponse = new HashMap<>();
+			errorResponse.put("error", "Update failed");
+			errorResponse.put("message", "An error occurred while updating the user");
+			
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
 		}
 	}
 

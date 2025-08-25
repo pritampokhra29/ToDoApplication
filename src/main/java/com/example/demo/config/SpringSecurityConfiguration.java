@@ -13,6 +13,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
 
 import com.example.demo.service.CustomUserDetailsService;
 
@@ -38,6 +42,22 @@ public class SpringSecurityConfiguration {
 	}
 
 	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Allow all origins for development
+		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+		configuration.setAllowedHeaders(Arrays.asList("*"));
+		configuration.setAllowCredentials(true);
+		configuration.setExposedHeaders(Arrays.asList("Authorization"));
+		
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		
+		logger.logSecurityEvent("CORS_CONFIG", "system", "CORS configuration enabled for all origins", "LOW");
+		return source;
+	}
+
+	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		logger.logBusinessOperation("SECURITY_CONFIG", "System", "Configuration", 
 				"CONFIGURE", "Configuring security with JWT enabled: " + jwtProperties.isEnabled());
@@ -46,7 +66,8 @@ public class SpringSecurityConfiguration {
 			// JWT Authentication Configuration
 			logger.logSecurityEvent("SECURITY_MODE", "system", "JWT authentication mode enabled", "LOW");
 			
-			http.csrf(csrf -> csrf.disable())
+			http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+					.csrf(csrf -> csrf.disable())
 					.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 					.authorizeHttpRequests(auth -> auth
 							.requestMatchers("/auth/login", "/auth/refresh", "/auth/validate", "/auth/status", "/auth/config").permitAll() 
@@ -60,7 +81,8 @@ public class SpringSecurityConfiguration {
 			// Basic Authentication Configuration (Fallback)
 			logger.logSecurityEvent("SECURITY_MODE", "system", "Basic authentication mode enabled", "LOW");
 			
-			http.csrf(csrf -> csrf.disable())
+			http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+					.csrf(csrf -> csrf.disable())
 					.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 					.authorizeHttpRequests(auth -> auth
 							.requestMatchers("/auth/config", "/auth/register").permitAll()

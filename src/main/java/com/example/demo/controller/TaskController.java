@@ -294,6 +294,17 @@ public class TaskController {
         return ResponseEntity.ok(updatedTask);
     }
 
+    // Add collaborator to a task by user ID
+    @PostMapping("/collaborator/add/by-id")
+    public ResponseEntity<Task> addCollaboratorById(@RequestBody Map<String, Object> request, Authentication authentication) {
+        String username = authentication.getName();
+        Long taskId = Long.valueOf(request.get("taskId").toString());
+        Long collaboratorUserId = Long.valueOf(request.get("collaboratorUserId").toString());
+        
+        Task updatedTask = taskService.addCollaboratorById(taskId, username, collaboratorUserId);
+        return ResponseEntity.ok(updatedTask);
+    }
+
     // Remove collaborator from a task
     @PostMapping("/collaborator/remove")
     public ResponseEntity<Task> removeCollaborator(@RequestBody Map<String, Object> request, Authentication authentication) {
