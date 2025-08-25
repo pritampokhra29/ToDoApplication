@@ -48,6 +48,9 @@ public interface TaskRepo extends JpaRepository<Task, Long> {
     List<Task> findByUserUsernameAndDueDateBeforeAndDeletedFalse(String username, LocalDate date);
     List<Task> findByUserUsernameAndDueDateAfterAndDeletedFalse(String username, LocalDate date);
     
+    // **NEW: Global due date filtering for notifications**
+    List<Task> findByDueDateAndDeletedFalse(LocalDate dueDate);
+    
     // **NEW: Search by keyword in title or description**
     @Query("SELECT t FROM Task t WHERE t.user.username = :username AND t.deleted = false AND " +
            "(LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
