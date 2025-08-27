@@ -5,7 +5,7 @@
         <property name="LOG_PATH" value="./logs"/>
     </springProfile>
     <springProfile name="prod">
-        <property name="LOG_PATH" value="/var/log/todolist"/>
+        <property name="LOG_PATH" value="./logs"/>
     </springProfile>
     
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId:-}][%X{username:-}] %logger{36} - %msg%n"/>
@@ -19,161 +19,177 @@
     </appender>
 
     <!-- Application Log File Appender with Rolling Policy -->
-    <appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/application.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- rollover daily and when the file reaches 100 MB -->
-            <fileNamePattern>${LOG_PATH}/archived/application-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
-            <maxFileSize>100MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
+    <!-- Note: In production cloud environments, this may fail silently if directory can't be created -->
+    <springProfile name="!prod">
+        <appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/application.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/application-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
 
     <!-- Audit Log File Appender with Rolling Policy -->
-    <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/audit.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- rollover daily and when the file reaches 50 MB -->
-            <fileNamePattern>${LOG_PATH}/archived/audit-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
-            <maxFileSize>50MB</maxFileSize>
-            <maxHistory>90</maxHistory>
-            <totalSizeCap>2GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${AUDIT_LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
+    <springProfile name="!prod">
+        <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/audit.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/audit-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>2GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${AUDIT_LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
 
     <!-- Method Execution Log File Appender with Rolling Policy -->
-    <appender name="METHOD_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/method-execution.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- rollover daily and when the file reaches 50 MB -->
-            <fileNamePattern>${LOG_PATH}/archived/method-execution-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
-            <maxFileSize>50MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
+    <springProfile name="!prod">
+        <appender name="METHOD_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/method-execution.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/method-execution-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
 
     <!-- Error Log File Appender with Rolling Policy -->
-    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/error.log</file>
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>ERROR</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- rollover daily and when the file reaches 20 MB -->
-            <fileNamePattern>${LOG_PATH}/archived/error-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
-            <maxFileSize>20MB</maxFileSize>
-            <maxHistory>90</maxHistory>
-            <totalSizeCap>500MB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
+    <springProfile name="!prod">
+        <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/error.log</file>
+            <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                <level>ERROR</level>
+                <onMatch>ACCEPT</onMatch>
+                <onMismatch>DENY</onMismatch>
+            </filter>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/error-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+                <maxFileSize>20MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
 
-    <!-- Async Appenders for better performance -->
-    <appender name="ASYNC_APPLICATION" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="APPLICATION_FILE"/>
-        <queueSize>512</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-    </appender>
+    <!-- Async Appenders for better performance (non-prod only) -->
+    <springProfile name="!prod">
+        <appender name="ASYNC_APPLICATION" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="APPLICATION_FILE"/>
+            <queueSize>512</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <includeCallerData>false</includeCallerData>
+        </appender>
 
-    <appender name="ASYNC_AUDIT" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="AUDIT_FILE"/>
-        <queueSize>512</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-    </appender>
+        <appender name="ASYNC_AUDIT" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="AUDIT_FILE"/>
+            <queueSize>512</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <includeCallerData>false</includeCallerData>
+        </appender>
 
-    <appender name="ASYNC_METHOD" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="METHOD_FILE"/>
-        <queueSize>256</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-    </appender>
+        <appender name="ASYNC_METHOD" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="METHOD_FILE"/>
+            <queueSize>256</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <includeCallerData>false</includeCallerData>
+        </appender>
+    </springProfile>
 
     <!-- Logger for Audit Events -->
-    <logger name="AUDIT" level="INFO" additivity="false">
-        <appender-ref ref="ASYNC_AUDIT"/>
-        <appender-ref ref="CONSOLE"/>
-    </logger>
-
-    <!-- Logger for Method Execution -->
-    <logger name="METHOD_EXECUTION" level="INFO" additivity="false">
-        <appender-ref ref="ASYNC_METHOD"/>
-    </logger>
-    
-    <!-- Method execution console logging for non-prod profiles -->
     <springProfile name="!prod">
-        <logger name="METHOD_EXECUTION_CONSOLE" level="INFO" additivity="false">
+        <logger name="AUDIT" level="INFO" additivity="false">
+            <appender-ref ref="ASYNC_AUDIT"/>
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
+    
+    <!-- Production Audit Logger - Console only -->
+    <springProfile name="prod">
+        <logger name="AUDIT" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE"/>
         </logger>
     </springProfile>
 
+    <!-- Logger for Method Execution -->
+    <springProfile name="!prod">
+        <logger name="METHOD_EXECUTION" level="INFO" additivity="false">
+            <appender-ref ref="ASYNC_METHOD"/>
+        </logger>
+    </springProfile>
+
     <!-- Application Loggers -->
-    <logger name="com.example.demo" level="INFO" additivity="false">
-        <appender-ref ref="ASYNC_APPLICATION"/>
-        <appender-ref ref="ERROR_FILE"/>
-        <appender-ref ref="CONSOLE"/>
-    </logger>
+    <springProfile name="!prod">
+        <logger name="com.example.demo" level="INFO" additivity="false">
+            <appender-ref ref="ASYNC_APPLICATION"/>
+            <appender-ref ref="ERROR_FILE"/>
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
+    
+    <!-- Production Application Logger - Console only -->
+    <springProfile name="prod">
+        <logger name="com.example.demo" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
 
     <!-- Spring Framework Loggers -->
     <logger name="org.springframework" level="WARN" additivity="false">
-        <appender-ref ref="ASYNC_APPLICATION"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
 
     <!-- Spring Security Loggers -->
     <logger name="org.springframework.security" level="INFO" additivity="false">
-        <appender-ref ref="ASYNC_APPLICATION"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
 
     <!-- Hibernate/JPA Loggers -->
     <logger name="org.hibernate" level="WARN" additivity="false">
-        <appender-ref ref="ASYNC_APPLICATION"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
-
-    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
-        <appender-ref ref="ASYNC_APPLICATION"/>
-    </logger>
-    
-    <!-- Hibernate SQL console logging for non-prod profiles -->
-    <springProfile name="!prod">
-        <logger name="org.hibernate.SQL.CONSOLE" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-        </logger>
-    </springProfile>
 
     <!-- Root Logger -->
-    <root level="INFO">
-        <appender-ref ref="ASYNC_APPLICATION"/>
-        <appender-ref ref="ERROR_FILE"/>
-        <appender-ref ref="CONSOLE"/>
-    </root>
+    <springProfile name="!prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_APPLICATION"/>
+            <appender-ref ref="ERROR_FILE"/>
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+    
+    <!-- Production Root Logger - Console only -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 
     <!-- Development Profile: More verbose console logging -->
     <springProfile name="dev">
         <logger name="com.example.demo" level="DEBUG"/>
         <logger name="org.springframework.web" level="DEBUG"/>
         <logger name="org.springframework.security" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
     </springProfile>
 
-    <!-- Production Profile: Less console logging, more file logging -->
+    <!-- Production Profile: Optimized logging -->
     <springProfile name="prod">
         <logger name="com.example.demo" level="INFO"/>
         <logger name="org.springframework" level="WARN"/>
