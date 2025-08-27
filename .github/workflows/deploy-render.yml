@@ -1,4 +1,4 @@
-name: Deploy to Render
+name: Deploy Backend to Render
 
 on:
   push:
@@ -8,8 +8,7 @@ on:
     types: [ closed ]
 
 jobs:
-  deploy:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+  test:
     runs-on: ubuntu-latest
     
     steps:
@@ -29,12 +28,28 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: Build with Maven
-      run: mvn clean compile test package
+    - name: Run tests
+      run: mvn clean test
+      
+    - name: Build application
+      run: mvn compile package -DskipTests
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
       
     - name: Deploy to Render
-      if: success()
       uses: johnbeynon/render-deploy-action@v0.0.8
       with:
         service-id: ${{ secrets.RENDER_SERVICE_ID }}
         api-key: ${{ secrets.RENDER_API_KEY }}
+        
+    - name: Deployment Status
+      run: |
+        echo "✅ Backend deployment triggered successfully!"
+        echo "🔗 Check deployment status in Render dashboard"
