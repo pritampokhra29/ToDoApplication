@@ -2,21 +2,22 @@
 -- This script will run automatically when the application starts
 
 -- Insert sample users (passwords are encoded using custom encoder with pepper)
--- admin/admin123, john/password123, jane/password123, mike/password123, sarah/password123
+-- Development passwords: admin/admin123, john/password123, jane/password123, mike/password123, sarah/password123
+-- Password format: rawPassword + pepper (devPepperForPasswordHashing123)
 INSERT INTO users (username, password, email, role, is_active, created_at, updated_at) VALUES 
-('admin', 'admin123mySuperSecretKey123!', 'admin@todolist.com', 'ADMIN', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('admin', 'admin123devPepperForPasswordHashing123', 'admin@todolist.com', 'ADMIN', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO users (username, password, email, role, is_active, created_at, updated_at) VALUES 
-('john', 'password123mySuperSecretKey123!', 'john@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('john', 'password123devPepperForPasswordHashing123', 'john@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO users (username, password, email, role, is_active, created_at, updated_at) VALUES 
-('jane', 'password123mySuperSecretKey123!', 'jane@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('jane', 'password123devPepperForPasswordHashing123', 'jane@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO users (username, password, email, role, is_active, created_at, updated_at) VALUES 
-('mike', 'password123mySuperSecretKey123!', 'mike@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('mike', 'password123devPepperForPasswordHashing123', 'mike@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO users (username, password, email, role, is_active, created_at, updated_at) VALUES 
-('sarah', 'password123mySuperSecretKey123!', 'sarah@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('sarah', 'password123devPepperForPasswordHashing123', 'sarah@example.com', 'USER', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Insert sample tasks for different users
 INSERT INTO tasks (title, description, due_date, status, create_date, update_date, deleted, completion_date, category, priority, user_id) VALUES
