@@ -3,13 +3,8 @@ FROM maven:3.8.6-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-# Copy Maven files
+# Copy Maven files and source code
 COPY pom.xml .
-
-# Download dependencies (for better caching)
-RUN mvn dependency:go-offline -B
-
-# Copy source code
 COPY src src
 
 # Build the application
