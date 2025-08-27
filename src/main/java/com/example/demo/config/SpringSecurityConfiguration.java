@@ -44,7 +44,12 @@ public class SpringSecurityConfiguration {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Allow all origins for development
+		configuration.setAllowedOriginPatterns(Arrays.asList(
+			"*", // Allow all origins for development
+			"https://pritampokhra29.github.io", // GitHub Pages frontend
+			"http://localhost:*", // Local development
+			"https://localhost:*" // Local HTTPS development
+		));
 		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 		configuration.setAllowedHeaders(Arrays.asList("*"));
 		configuration.setAllowCredentials(true);
@@ -53,7 +58,7 @@ public class SpringSecurityConfiguration {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		
-		logger.logSecurityEvent("CORS_CONFIG", "system", "CORS configuration enabled for all origins", "LOW");
+		logger.logSecurityEvent("CORS_CONFIG", "system", "CORS configuration enabled for GitHub Pages and development origins", "LOW");
 		return source;
 	}
 
