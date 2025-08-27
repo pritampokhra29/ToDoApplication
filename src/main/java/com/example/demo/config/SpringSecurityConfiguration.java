@@ -47,6 +47,7 @@ public class SpringSecurityConfiguration {
 		configuration.setAllowedOriginPatterns(Arrays.asList(
 			"*", // Allow all origins for development
 			"https://pritampokhra29.github.io", // GitHub Pages frontend
+			"https://todoapplication-frontend-mtl2.onrender.com", // Render frontend
 			"http://localhost:*", // Local development
 			"https://localhost:*" // Local HTTPS development
 		));
@@ -58,7 +59,7 @@ public class SpringSecurityConfiguration {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		
-		logger.logSecurityEvent("CORS_CONFIG", "system", "CORS configuration enabled for GitHub Pages and development origins", "LOW");
+		logger.logSecurityEvent("CORS_CONFIG", "system", "CORS configuration enabled for GitHub Pages, Render frontend, and development origins", "LOW");
 		return source;
 	}
 
