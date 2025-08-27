@@ -80,9 +80,29 @@ LOG_LEVEL = INFO
 ## 🐛 Troubleshooting
 
 ### Database Connection Issues:
-- Verify DATABASE_URL format: `postgresql://username:password@host:port/database`
-- Check if database service is running in Render
-- Ensure web service and database are in the same region
+- **Check DATABASE_URL format**: Must be `postgresql://username:password@host:port/database`
+- **Verify credentials**: Test the connection independently using a PostgreSQL client
+- **Common issues**:
+  - Username/password contains special characters (URL encode them)
+  - Database service is not running in Render
+  - Firewall blocking connections
+  - Wrong database name or host
+
+**To test your DATABASE_URL manually:**
+```bash
+# Use psql command line tool (if available)
+psql "postgresql://username:password@host:port/database"
+
+# Or test connection with curl
+curl "postgresql://username:password@host:port/database"
+```
+
+**URL Encoding for special characters:**
+- `@` becomes `%40`
+- `#` becomes `%23`
+- `%` becomes `%25`
+- `:` in password becomes `%3A`
+- `/` becomes `%2F`
 
 ### JWT/Security Issues:
 - Verify JWT_SECRET is exactly as generated (256-bit base64)
