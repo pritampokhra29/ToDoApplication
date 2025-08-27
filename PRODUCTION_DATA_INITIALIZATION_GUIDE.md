@@ -10,61 +10,46 @@ User not found: admin
 ## Root Cause Analysis
 
 1. **Development vs Production**: Data initialization was only configured for development (H2 database)
-2. **Production Configuration**: `spring.sql.init.mode=never` prevented data loading in production
-3. **Missing Admin User**: Production database was empty, no admin user existed
+2. **Production Database**: PostgreSQL database was empty, no admin user existed
+3. **Manual Setup Required**: Production databases should be initialized manually for security
 
-## Solution Implemented
+## Solution: Manual Database Initialization
 
-### 1. Smart Production Data Initializer
+### Step 1: Prepare the SQL Script
 
-Created `ProductionDataInitializer.java` that:
-- ✅ **Only runs in production profile** (`@Profile("prod")`)
-- ✅ **Uses proper password encoding** with production pepper
-- ✅ **Creates admin user safely** (checks if exists first)
-- ✅ **Idempotent operations** (can run multiple times safely)
+Use the provided `production-manual-init.sql` script with your actual production pepper:
 
-### 2. Environment Variable Control
+1. **Open** `production-manual-init.sql`
+2. **Replace** `YOUR_PRODUCTION_PEPPER_HERE` with your actual `SECURITY_PASSWORD_PEPPER` value
+3. **Save** the modified script
 
-Production data initialization is controlled by environment variable:
+### Step 2: Execute in Production Database
+
+**Option A: Using Render Dashboard**
+1. Go to your Render PostgreSQL dashboard
+2. Click "Connect" → "External Connection"  
+3. Use a PostgreSQL client (pgAdmin, DBeaver, etc.)
+4. Run the modified SQL script
+
+**Option B: Using psql Command Line**
 ```bash
-INIT_PRODUCTION_DATA=true   # Enable data initialization
-INIT_PRODUCTION_DATA=false  # Disable (default)
+psql "postgresql://username:password@host/database" -f production-manual-init.sql
 ```
 
-## Deployment Instructions
+### Step 3: Verify Installation
 
-### For First Production Deployment:
+Run these verification queries in your database:
+```sql
+-- Check users were created
+SELECT id, username, email, role, is_active FROM users;
 
-1. **Set Environment Variables** in your Render dashboard:
-   ```bash
-   # Database Configuration
-   DATABASE_JDBC_URL=jdbc:postgresql://your-host/your-db
-   DATABASE_USERNAME=your-username
-   DATABASE_PASSWORD=your-password
-   
-   # Security Configuration  
-   JWT_SECRET=your-jwt-secret
-   SECURITY_PASSWORD_PEPPER=your-production-pepper
-   SECRET_KEY=your-secret-key
-   
-   # Data Initialization (IMPORTANT!)
-   INIT_PRODUCTION_DATA=true
-   
-   # Profile
-   SPRING_PROFILES_ACTIVE=prod
-   ```
-
-2. **Deploy your application** - The initializer will:
-   - Create admin user with username: `admin`, password: `admin123`
-   - Create test user with username: `user`, password: `password123`
-   - Create a welcome task for the admin user
-
-3. **After successful deployment**, change the environment variable:
-   ```bash
-   INIT_PRODUCTION_DATA=false  # Prevent re-initialization
-   ```
+-- Check welcome task was created  
+SELECT id, title, description, status, user_id FROM tasks;
+```
 
 ## Default Production Credentials
+
+After running the script, you'll have:
 
 ### Admin User:
 - **Username**: `admin`
@@ -82,50 +67,57 @@ INIT_PRODUCTION_DATA=false  # Disable (default)
 
 ### Password Encoding:
 - Uses **production pepper** from `SECURITY_PASSWORD_PEPPER`
-- **Secure hashing** with custom password encoder
-- **Different from development** credentials
+- **Manual control** over initialization
+- **No automatic data creation** in production
 
 ### Safe Operations:
-- **Checks existence** before creating users
-- **No duplicate creation** if users already exist
-- **Transaction safety** with proper error handling
+- **ON CONFLICT DO NOTHING** prevents duplicate creation
+- **Idempotent script** - can run multiple times safely
+- **Manual verification** steps included
 
-## Logging and Monitoring
+## Environment Variables Required
 
-The initializer provides detailed logging:
+For production deployment, set these in Render:
+
+```bash
+# Database Configuration
+DATABASE_JDBC_URL=jdbc:postgresql://your-host/your-db
+DATABASE_USERNAME=your-username  
+DATABASE_PASSWORD=your-password
+
+# Security Configuration
+JWT_SECRET=your-jwt-secret
+SECURITY_PASSWORD_PEPPER=your-production-pepper
+SECRET_KEY=your-secret-key
+
+# Profile
+SPRING_PROFILES_ACTIVE=prod
 ```
-✅ Starting production data initialization...
-✅ Created admin user for production
-✅ Created welcome task for admin
-✅ Created test user for production
-✅ Production data initialization completed successfully
-```
 
-## Alternative Manual Method
-
-If you prefer manual setup, you can also run this SQL directly on your production database:
-
-```sql
--- Replace YOUR_PRODUCTION_PEPPER with your actual pepper value
-INSERT INTO users (username, password, email, role, is_active, created_at, updated_at) 
-VALUES ('admin', 'admin123YOUR_PRODUCTION_PEPPER', 'admin@todolist.com', 'ADMIN', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (username) DO NOTHING;
-```
+**Note**: No `INIT_PRODUCTION_DATA` variable needed anymore!
 
 ## Verification Steps
 
-After deployment, verify by:
+After deployment and database initialization:
 
-1. **Check application logs** for initialization messages
+1. **Check application logs** - should start without errors
 2. **Try logging in** with admin/admin123 credentials
-3. **Check database** for user records
-4. **Test API endpoints** with admin credentials
+3. **Test API endpoints** with admin credentials
+4. **Verify CORS** with your frontend at `https://todoapplication-frontend-mtl2.onrender.com`
 
-## Important Notes
+## Important Security Notes
 
-⚠️ **Change default passwords** after first login for security
-⚠️ **Set INIT_PRODUCTION_DATA=false** after initial setup
-⚠️ **Use strong production pepper** different from development
-⚠️ **Monitor logs** during first deployment for any issues
+⚠️ **Change default passwords** after first login
+⚠️ **Use strong production pepper** different from development  
+⚠️ **Keep SQL script secure** - contains pepper information
+⚠️ **Delete modified script** after use to prevent credential exposure
 
-This solution ensures your production database has the necessary initial data while maintaining security best practices! 🎉
+## Troubleshooting
+
+### If login still fails:
+1. **Check pepper value** in your environment variables
+2. **Verify SQL script** was modified with correct pepper
+3. **Check database** that users were actually created
+4. **Review application logs** for authentication errors
+
+This manual approach gives you **full control** over your production data initialization while maintaining security best practices! 🎉
