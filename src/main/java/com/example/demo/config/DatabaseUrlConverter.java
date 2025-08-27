@@ -62,11 +62,19 @@ public class DatabaseUrlConverter implements ApplicationListener<ApplicationEnvi
                     properties.put("spring.datasource.password", password);
                     properties.put("spring.datasource.driver-class-name", "org.postgresql.Driver");
                     
-                    // Add the properties to the environment with high priority
+                    // IMPORTANT: Remove the original DATABASE_URL to prevent conflicts
+                    Map<String, Object> clearProperties = new HashMap<>();
+                    clearProperties.put("DATABASE_URL", null);
+                    
+                    // Add the clear properties first
+                    MapPropertySource clearSource = new MapPropertySource("clear-database-url", clearProperties);
+                    environment.getPropertySources().addFirst(clearSource);
+                    
+                    // Then add the converted properties with highest priority
                     MapPropertySource propertySource = new MapPropertySource("converted-database-url", properties);
                     environment.getPropertySources().addFirst(propertySource);
                     
-                    logger.info("Successfully converted DATABASE_URL to Spring datasource properties");
+                    logger.info("Successfully converted DATABASE_URL to Spring datasource properties and cleared original URL");
                 } else {
                     logger.warn("Invalid DATABASE_URL format: {}", databaseUrl);
                 }
