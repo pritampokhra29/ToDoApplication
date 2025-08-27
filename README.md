@@ -112,6 +112,10 @@ Import `Fixed_TodoList_API_Collection.postman_collection.json` and set:
 - JPA/Hibernate
 - H2 Database (in-memory)
 
+## Deployment
+
+This application can be deployed to various platforms. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions on deploying to Render with GitHub Actions.
+
 ## Common Issues
 
 ### 404 Errors
