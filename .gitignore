@@ -26,7 +26,33 @@ replay_pid*
 .gitattributes
 .project
 /.settings
-/.mvn
-*.md
-mvnw
+# Maven Wrapper - Keep these for builds
+# /.mvn  
+# mvnw
 /target
+/Angular/*
+.vscode/settings.json
+/logs
+
+# Environment Variables and Secrets
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Security sensitive files
+production_keys.txt
+*_keys.txt
+*.ps1.bak
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE specific files
+.idea/
+*.iml
+*.iws
+*.ipr
