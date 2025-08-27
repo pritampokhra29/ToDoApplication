@@ -5,17 +5,22 @@ import com.example.demo.entity.User;
 import com.example.demo.repo.TaskRepo;
 import com.example.demo.repo.UserRepo;
 import com.example.demo.service.TaskService;
+import com.example.demo.dto.CreateTaskRequest;
+import com.example.demo.dto.TaskResponse;
+import com.example.demo.dto.UpdateTaskRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskServiceImpl implements TaskService {
@@ -50,6 +55,175 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public TaskResponse createTaskWithCollaborators(CreateTaskRequest request, String username) {
+        LOGGER.info("Creating task with collaborators for user: {}", username);
+        
+        // Get the task owner
+        User owner = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        
+        // Create the task entity
+        Task task = new Task();
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setDueDate(request.getDueDate());
+        task.setStatus(request.getStatus() != null ? request.getStatus() : com.example.demo.constants.Status.PENDING);
+        task.setCategory(request.getCategory());
+        task.setPriority(request.getPriority() != null ? request.getPriority() : com.example.demo.constants.Priority.MEDIUM);
+        task.setUser(owner);
+        task.setCreateDate(LocalDate.now());
+        task.setUpdateDate(LocalDate.now());
+        task.setDeleted(false);
+        
+        // Initialize collaborators set
+        Set<User> collaborators = new HashSet<>();
+        
+        // Add the owner as a collaborator by default
+        collaborators.add(owner);
+        
+        // Add collaborators by username
+        if (request.getCollaboratorUsernames() != null && !request.getCollaboratorUsernames().isEmpty()) {
+            for (String collaboratorUsername : request.getCollaboratorUsernames()) {
+                if (!collaboratorUsername.equals(username)) { // Don't add owner twice
+                    User collaborator = userRepo.findByUsername(collaboratorUsername)
+                            .orElseThrow(() -> new RuntimeException("Collaborator not found: " + collaboratorUsername));
+                    collaborators.add(collaborator);
+                }
+            }
+        }
+        
+        // Add collaborators by user ID
+        if (request.getCollaboratorUserIds() != null && !request.getCollaboratorUserIds().isEmpty()) {
+            for (Long collaboratorId : request.getCollaboratorUserIds()) {
+                if (!collaboratorId.equals(owner.getId())) { // Don't add owner twice
+                    User collaborator = userRepo.findById(collaboratorId)
+                            .orElseThrow(() -> new RuntimeException("Collaborator not found with ID: " + collaboratorId));
+                    collaborators.add(collaborator);
+                }
+            }
+        }
+        
+        task.setCollaborators(collaborators);
+        
+        // Save the task
+        Task savedTask = taskRepo.save(task);
+        
+        LOGGER.info("Created task {} with {} collaborators", savedTask.getId(), collaborators.size());
+        
+        // Convert to response DTO
+        return convertToTaskResponse(savedTask);
+    }
+    
+    /**
+     * Convert Task entity to TaskResponse DTO
+     */
+    private TaskResponse convertToTaskResponse(Task task) {
+        TaskResponse response = new TaskResponse();
+        response.setId(task.getId());
+        response.setTitle(task.getTitle());
+        response.setDescription(task.getDescription());
+        response.setDueDate(task.getDueDate());
+        response.setStatus(task.getStatus());
+        response.setCreateDate(task.getCreateDate());
+        response.setUpdateDate(task.getUpdateDate());
+        response.setDeleted(task.getDeleted());
+        response.setCompletionDate(task.getCompletionDate());
+        response.setCategory(task.getCategory());
+        response.setPriority(task.getPriority());
+        
+        // Set owner
+        response.setOwner(TaskResponse.UserDTO.fromUser(task.getUser()));
+        
+        // Set collaborators - handle potential lazy loading issues
+        List<TaskResponse.UserDTO> collaboratorDTOs = new ArrayList<>();
+        try {
+            if (task.getCollaborators() != null) {
+                collaboratorDTOs = task.getCollaborators().stream()
+                        .map(TaskResponse.UserDTO::fromUser)
+                        .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Could not load collaborators for task {}, returning empty list", task.getId());
+            collaboratorDTOs = new ArrayList<>();
+        }
+        response.setCollaborators(collaboratorDTOs);
+        
+        return response;
+    }
+    
+    @Override
+    public TaskResponse updateTaskWithCollaborators(UpdateTaskRequest request, String username) {
+        LOGGER.info("Updating task {} with collaborators for user: {}", request.getId(), username);
+        
+        // Get the existing task
+        Task existingTask = getTaskByIdAndUser(request.getId(), username);
+        
+        // Update task fields
+        if (request.getTitle() != null) {
+            existingTask.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            existingTask.setDescription(request.getDescription());
+        }
+        if (request.getDueDate() != null) {
+            existingTask.setDueDate(request.getDueDate());
+        }
+        if (request.getStatus() != null) {
+            existingTask.setStatus(request.getStatus());
+        }
+        if (request.getCategory() != null) {
+            existingTask.setCategory(request.getCategory());
+        }
+        if (request.getPriority() != null) {
+            existingTask.setPriority(request.getPriority());
+        }
+        
+        existingTask.setUpdateDate(LocalDate.now());
+        
+        // Update collaborators if provided
+        if ((request.getCollaboratorUsernames() != null && !request.getCollaboratorUsernames().isEmpty()) ||
+            (request.getCollaboratorUserIds() != null && !request.getCollaboratorUserIds().isEmpty())) {
+            
+            Set<User> collaborators = new HashSet<>();
+            
+            // Always include the task owner as a collaborator
+            collaborators.add(existingTask.getUser());
+            
+            // Add collaborators by username
+            if (request.getCollaboratorUsernames() != null && !request.getCollaboratorUsernames().isEmpty()) {
+                for (String collaboratorUsername : request.getCollaboratorUsernames()) {
+                    if (!collaboratorUsername.equals(existingTask.getUser().getUsername())) { // Don't add owner twice
+                        User collaborator = userRepo.findByUsername(collaboratorUsername)
+                                .orElseThrow(() -> new RuntimeException("Collaborator not found: " + collaboratorUsername));
+                        collaborators.add(collaborator);
+                    }
+                }
+            }
+            
+            // Add collaborators by user ID
+            if (request.getCollaboratorUserIds() != null && !request.getCollaboratorUserIds().isEmpty()) {
+                for (Long collaboratorId : request.getCollaboratorUserIds()) {
+                    if (!collaboratorId.equals(existingTask.getUser().getId())) { // Don't add owner twice
+                        User collaborator = userRepo.findById(collaboratorId)
+                                .orElseThrow(() -> new RuntimeException("Collaborator not found with ID: " + collaboratorId));
+                        collaborators.add(collaborator);
+                    }
+                }
+            }
+            
+            existingTask.setCollaborators(collaborators);
+        }
+        
+        // Save the updated task
+        Task updatedTask = taskRepo.save(existingTask);
+        
+        LOGGER.info("Updated task {} with {} collaborators", updatedTask.getId(), updatedTask.getCollaborators().size());
+        
+        // Convert to response DTO
+        return convertToTaskResponse(updatedTask);
+    }
+
+    @Override
     public List<Task> getTasksByUser(String username) {
         LOGGER.info("Getting tasks for user: {}", username);
         
@@ -58,6 +232,22 @@ public class TaskServiceImpl implements TaskService {
         
         LOGGER.info("Found {} tasks for user {}", userTasks.size(), username);
         return userTasks;
+    }
+    
+    @Override
+    public List<TaskResponse> getTasksWithCollaboratorsByUser(String username) {
+        LOGGER.info("Getting tasks with collaborators for user: {}", username);
+        
+        // **FIXED: Use database-level query to avoid lazy loading**
+        List<Task> userTasks = taskRepo.findTasksByOwnerOrCollaborator(username);
+        
+        // Convert to TaskResponse DTOs to include collaborator details
+        List<TaskResponse> taskResponses = userTasks.stream()
+                .map(this::convertToTaskResponse)
+                .collect(Collectors.toList());
+        
+        LOGGER.info("Found {} tasks with collaborators for user {}", taskResponses.size(), username);
+        return taskResponses;
     }
 
     @Override
@@ -70,6 +260,22 @@ public class TaskServiceImpl implements TaskService {
         if (userTask.isPresent()) {
             LOGGER.info("Found task {} for user {}", id, username);
             return userTask.get();
+        }
+        
+        LOGGER.warn("Task {} not found or access denied for user {}", id, username);
+        throw new RuntimeException("Task not found or access denied");
+    }
+    
+    @Override
+    public TaskResponse getTaskWithCollaboratorsByIdAndUser(Long id, String username) {
+        LOGGER.info("Getting task {} with collaborators for user: {}", id, username);
+        
+        // **FIXED: Use database-level query to avoid lazy loading**
+        Optional<Task> userTask = taskRepo.findTaskByIdAndOwnerOrCollaborator(id, username);
+        
+        if (userTask.isPresent()) {
+            LOGGER.info("Found task {} with collaborators for user {}", id, username);
+            return convertToTaskResponse(userTask.get());
         }
         
         LOGGER.warn("Task {} not found or access denied for user {}", id, username);

@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.entity.Task;
 import com.example.demo.service.TaskService;
 import com.example.demo.util.CustomLogger;
+import com.example.demo.dto.CreateTaskRequest;
+import com.example.demo.dto.TaskResponse;
+import com.example.demo.dto.UpdateTaskRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,16 +44,61 @@ public class TaskController {
         return ResponseEntity.ok(createdTask);
     }
 
-    // Get all tasks for the logged-in user (including collaborative tasks)
-    @GetMapping
-    public ResponseEntity<List<Task>> getAllTasks(Authentication authentication) {
+    // **NEW: Create a new task with collaborators in single request**
+    @PostMapping("/with-collaborators")
+    public ResponseEntity<TaskResponse> createTaskWithCollaborators(@RequestBody CreateTaskRequest request, Authentication authentication) {
         String username = authentication.getName();
         
-        logger.logUserActivity(username, "GET_ALL_TASKS", "/tasks", "Retrieving all tasks for user");
+        logger.logUserActivity(username, "CREATE_TASK_WITH_COLLABORATORS", "/tasks/with-collaborators", 
+                "Creating new task with collaborators: " + request.getTitle());
+        logger.logBusinessOperation("CREATE_TASK_WITH_COLLABORATORS", "Task", null, "CREATE", "INITIATED");
+        
+        TaskResponse createdTask = taskService.createTaskWithCollaborators(request, username);
+        
+        logger.logBusinessOperation("CREATE_TASK_WITH_COLLABORATORS", "Task", createdTask.getId().toString(), "CREATE", "SUCCESS");
+        logger.logDataChange("Task", createdTask.getId().toString(), "CREATE", null, createdTask.toString());
+        
+        return ResponseEntity.ok(createdTask);
+    }
+
+    // Get all tasks for the logged-in user (including collaborative tasks)
+    @GetMapping
+    public ResponseEntity<List<TaskResponse>> getAllTasks(Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "GET_ALL_TASKS", "/tasks", "Retrieving all tasks with collaborators for user");
+        
+        List<TaskResponse> tasks = taskService.getTasksWithCollaboratorsByUser(username);
+        
+        logger.info("Retrieved {} tasks with collaborators for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **LEGACY: Get all tasks without collaborator details (for backward compatibility)**
+    @GetMapping("/basic")
+    public ResponseEntity<List<Task>> getAllTasksBasic(Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "GET_ALL_TASKS_BASIC", "/tasks/basic", "Retrieving all tasks for user");
         
         List<Task> tasks = taskService.getTasksByUser(username);
         
         logger.info("Retrieved {} tasks for user: {}", tasks.size(), username);
+        
+        return ResponseEntity.ok(tasks);
+    }
+
+    // **NEW: Get all tasks with collaborator details**
+    @GetMapping("/with-collaborators")
+    public ResponseEntity<List<TaskResponse>> getAllTasksWithCollaborators(Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "GET_ALL_TASKS_WITH_COLLABORATORS", "/tasks/with-collaborators", "Retrieving all tasks with collaborators for user");
+        
+        List<TaskResponse> tasks = taskService.getTasksWithCollaboratorsByUser(username);
+        
+        logger.info("Retrieved {} tasks with collaborators for user: {}", tasks.size(), username);
         
         return ResponseEntity.ok(tasks);
     }
@@ -189,10 +237,24 @@ public class TaskController {
 
     // RESTful: Get a specific task by ID using path variable
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskByIdPath(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<TaskResponse> getTaskByIdPath(@PathVariable Long id, Authentication authentication) {
         String username = authentication.getName();
         
-        logger.logUserActivity(username, "GET_TASK_BY_ID", "/tasks/" + id, "Retrieving task with ID: " + id);
+        logger.logUserActivity(username, "GET_TASK_BY_ID", "/tasks/" + id, "Retrieving task with collaborators, ID: " + id);
+        
+        TaskResponse task = taskService.getTaskWithCollaboratorsByIdAndUser(id, username);
+        
+        logger.logBusinessOperation("GET_TASK", "Task", id.toString(), "READ", "SUCCESS");
+        
+        return ResponseEntity.ok(task);
+    }
+
+    // **LEGACY: Get a specific task by ID without collaborator details**
+    @GetMapping("/{id}/basic")
+    public ResponseEntity<Task> getTaskByIdPathBasic(@PathVariable Long id, Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "GET_TASK_BY_ID_BASIC", "/tasks/" + id + "/basic", "Retrieving task without collaborators, ID: " + id);
         
         Task task = taskService.getTaskByIdAndUser(id, username);
         
@@ -229,6 +291,23 @@ public class TaskController {
         }
         
         Task updatedTask = taskService.updateTask(id, task, username);
+        return ResponseEntity.ok(updatedTask);
+    }
+
+    // **NEW: Update a task with collaborators in single request**
+    @PostMapping("/update-with-collaborators")
+    public ResponseEntity<TaskResponse> updateTaskWithCollaborators(@RequestBody UpdateTaskRequest request, Authentication authentication) {
+        String username = authentication.getName();
+        
+        logger.logUserActivity(username, "UPDATE_TASK_WITH_COLLABORATORS", "/tasks/update-with-collaborators", 
+                "Updating task with collaborators: " + request.getId());
+        logger.logBusinessOperation("UPDATE_TASK_WITH_COLLABORATORS", "Task", request.getId().toString(), "UPDATE", "INITIATED");
+        
+        TaskResponse updatedTask = taskService.updateTaskWithCollaborators(request, username);
+        
+        logger.logBusinessOperation("UPDATE_TASK_WITH_COLLABORATORS", "Task", updatedTask.getId().toString(), "UPDATE", "SUCCESS");
+        logger.logDataChange("Task", updatedTask.getId().toString(), "UPDATE", null, updatedTask.toString());
+        
         return ResponseEntity.ok(updatedTask);
     }
 

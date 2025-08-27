@@ -76,12 +76,12 @@ public interface TaskRepo extends JpaRepository<Task, Long> {
     boolean existsCollaboratorByTaskIdAndUserId(@Param("taskId") Long taskId, @Param("userId") Long userId);
     
     // **NEW: Get tasks where user is owner or collaborator without lazy loading issues**
-    @Query("SELECT DISTINCT t FROM Task t LEFT JOIN t.collaborators c WHERE t.deleted = false AND " +
-           "(t.user.username = :username OR c.username = :username)")
+    @Query("SELECT DISTINCT t FROM Task t LEFT JOIN FETCH t.collaborators WHERE t.deleted = false AND " +
+           "(t.user.username = :username OR EXISTS (SELECT c FROM t.collaborators c WHERE c.username = :username))")
     List<Task> findTasksByOwnerOrCollaborator(@Param("username") String username);
     
     // **NEW: Get specific task where user is owner or collaborator without lazy loading issues**
-    @Query("SELECT DISTINCT t FROM Task t LEFT JOIN t.collaborators c WHERE t.id = :taskId AND t.deleted = false AND " +
-           "(t.user.username = :username OR c.username = :username)")
+    @Query("SELECT DISTINCT t FROM Task t LEFT JOIN FETCH t.collaborators WHERE t.id = :taskId AND t.deleted = false AND " +
+           "(t.user.username = :username OR EXISTS (SELECT c FROM t.collaborators c WHERE c.username = :username))")
     Optional<Task> findTaskByIdAndOwnerOrCollaborator(@Param("taskId") Long taskId, @Param("username") String username);
 }
