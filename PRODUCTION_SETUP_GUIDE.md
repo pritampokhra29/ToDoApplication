@@ -11,7 +11,8 @@ This guide will help you configure your existing Render PostgreSQL database with
 2. **Navigate to your PostgreSQL service**
 3. **Copy the connection details:**
    - Look for "External Database URL" or "Connection String"
-   - It should look like: `postgresql://username:password@hostname:port/database`
+   - It will be in format: `postgresql://username:password@hostname:port/database`
+   - **Important**: Use this exact format (our app will convert it to JDBC format automatically)
 
 ### Step 2: Configure Environment Variables in Render
 
@@ -21,12 +22,17 @@ This guide will help you configure your existing Render PostgreSQL database with
 
 #### Required Variables:
 ```
-DATABASE_URL = [Your PostgreSQL connection URL from Step 1]
-JWT_SECRET = ---
-SECURITY_PASSWORD_PEPPER = ---
-SECRET_KEY = ---
+DATABASE_URL = postgresql://username:password@hostname:port/database
+JWT_SECRET = exXzvSZuVoETpxlhWhkKVxa5LWTDRbzFVseMA6vKuWQ=
+SECURITY_PASSWORD_PEPPER = w2IW5jgDXyo4YFqQbZccWg==
+SECRET_KEY = L/P0r+IzeIHvd1qBzO3FRFTL+pcuEQ7g/3TWdI0Sewc=
 SPRING_PROFILES_ACTIVE = prod
 ```
+
+**Important**: 
+- Use the `postgresql://` format (not `jdbc:postgresql://`)
+- The application will automatically convert it to the correct JDBC format
+- Copy the exact URL from your Render PostgreSQL service
 
 #### Optional Variables (already set in render.yaml):
 ```
