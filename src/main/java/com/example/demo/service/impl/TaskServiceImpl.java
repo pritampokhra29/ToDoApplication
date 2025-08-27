@@ -5,6 +5,8 @@ import com.example.demo.entity.User;
 import com.example.demo.repo.TaskRepo;
 import com.example.demo.repo.UserRepo;
 import com.example.demo.service.TaskService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,8 @@ import java.util.Set;
 
 @Service
 public class TaskServiceImpl implements TaskService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TaskServiceImpl.class);
 
     @Autowired
     private TaskRepo taskRepo;
@@ -47,46 +51,28 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<Task> getTasksByUser(String username) {
-        // Get tasks where user is owner and not deleted
-        List<Task> ownedTasks = taskRepo.findByUserUsernameAndDeletedFalse(username);
+        LOGGER.info("Getting tasks for user: {}", username);
         
-        // Get all non-deleted tasks to check for collaborations
-        List<Task> allTasks = taskRepo.findAllByDeletedFalse();
+        // **FIXED: Use database-level query to avoid lazy loading**
+        List<Task> userTasks = taskRepo.findTasksByOwnerOrCollaborator(username);
         
-        // Find tasks where user is a collaborator
-        List<Task> collaborativeTasks = allTasks.stream()
-            .filter(task -> !task.getUser().getUsername().equals(username)) // Not owned by user
-            .filter(task -> task.getCollaborators() != null && 
-                          task.getCollaborators().stream()
-                              .anyMatch(collaborator -> collaborator.getUsername().equals(username)))
-            .collect(java.util.stream.Collectors.toList());
-        
-        // Combine owned and collaborative tasks
-        ownedTasks.addAll(collaborativeTasks);
-        return ownedTasks;
+        LOGGER.info("Found {} tasks for user {}", userTasks.size(), username);
+        return userTasks;
     }
 
     @Override
     public Task getTaskByIdAndUser(Long id, String username) {
-        // Check if user is owner
-        Optional<Task> ownedTask = taskRepo.findByIdAndUserUsernameAndDeletedFalse(id, username);
-        if (ownedTask.isPresent()) {
-            return ownedTask.get();
+        LOGGER.info("Getting task {} for user: {}", id, username);
+        
+        // **FIXED: Use database-level query to avoid lazy loading**
+        Optional<Task> userTask = taskRepo.findTaskByIdAndOwnerOrCollaborator(id, username);
+        
+        if (userTask.isPresent()) {
+            LOGGER.info("Found task {} for user {}", id, username);
+            return userTask.get();
         }
         
-        // If not owner, check if user is collaborator
-        Optional<Task> taskById = taskRepo.findByIdAndDeletedFalse(id);
-        if (taskById.isPresent()) {
-            Task foundTask = taskById.get();
-            if (foundTask.getCollaborators() != null) {
-                boolean isCollaborator = foundTask.getCollaborators().stream()
-                    .anyMatch(user -> user.getUsername().equals(username));
-                if (isCollaborator) {
-                    return foundTask;
-                }
-            }
-        }
-        
+        LOGGER.warn("Task {} not found or access denied for user {}", id, username);
         throw new RuntimeException("Task not found or access denied");
     }
 
