@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import com.example.demo.constants.Priority;
 import com.example.demo.constants.Status;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -62,6 +63,7 @@ public class Task {
         joinColumns = @JoinColumn(name = "task_id"),
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+    @JsonIgnore // Prevent lazy loading issues during JSON serialization
     private java.util.Set<User> collaborators;
 
     @ManyToOne
