@@ -1,0 +1,442 @@
+{
+	"info": {
+		"_postman_id": "87654321-4321-4321-4321-210987654321",
+		"name": "TodoList API - Fixed Collection",
+		"description": "Fixed TodoList API collection with correct URLs and environment variables",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "username",
+				"value": "john",
+				"type": "string"
+			},
+			{
+				"key": "password",
+				"value": "password123",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set base URL if not already set",
+					"if (!pm.collectionVariables.get('baseUrl')) {",
+					"    pm.collectionVariables.set('baseUrl', 'http://localhost:8080');",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔐 Authentication Tests",
+			"item": [
+				{
+					"name": "Test Authentication - John",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "john",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "password123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Test basic authentication with user 'john'"
+					}
+				},
+				{
+					"name": "Test Authentication - Jane",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "jane",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "password123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Test basic authentication with user 'jane'"
+					}
+				},
+				{
+					"name": "Test Authentication - Admin",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "admin123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Test basic authentication with admin user"
+					}
+				}
+			]
+		},
+		{
+			"name": "📝 Basic CRUD Operations",
+			"item": [
+				{
+					"name": "Get All Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Retrieve all tasks for the authenticated user"
+					}
+				},
+				{
+					"name": "Create New Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Test Task via Postman\",\n    \"description\": \"This task was created using the Postman API\",\n    \"dueDate\": \"2025-08-30\",\n    \"status\": \"PENDING\",\n    \"category\": \"Testing\",\n    \"priority\": \"HIGH\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Create a new task"
+					}
+				},
+				{
+					"name": "Get Task by ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/get",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "get"]
+						},
+						"description": "Get a specific task by ID"
+					}
+				},
+				{
+					"name": "Update Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"title\": \"Updated Task Title\",\n    \"description\": \"Updated task description\",\n    \"status\": \"IN_PROGRESS\",\n    \"priority\": \"MEDIUM\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/update",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "update"]
+						},
+						"description": "Update an existing task"
+					}
+				},
+				{
+					"name": "Delete Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/delete",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "delete"]
+						},
+						"description": "Delete a task (soft delete)"
+					}
+				}
+			]
+		},
+		{
+			"name": "🔍 Search & Filter",
+			"item": [
+				{
+					"name": "Search Tasks",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"keyword\": \"project\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "search"]
+						},
+						"description": "Search tasks by title or description"
+					}
+				},
+				{
+					"name": "Filter by Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"PENDING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/filter/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "filter", "status"]
+						},
+						"description": "Filter tasks by status"
+					}
+				},
+				{
+					"name": "Filter by Priority",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"priority\": \"HIGH\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/filter/priority",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "filter", "priority"]
+						},
+						"description": "Filter tasks by priority"
+					}
+				},
+				{
+					"name": "Filter by Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"category\": \"Work\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/filter/category",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "filter", "category"]
+						},
+						"description": "Filter tasks by category"
+					}
+				}
+			]
+		},
+		{
+			"name": "📄 Pagination & Sorting",
+			"item": [
+				{
+					"name": "Get Paginated Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/paginated?page=0&size=5",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "paginated"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Get tasks with pagination"
+					}
+				},
+				{
+					"name": "Get Sorted Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/paginated?page=0&size=10&sortBy=dueDate&sortDir=asc",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "paginated"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "dueDate"
+								},
+								{
+									"key": "sortDir",
+									"value": "asc"
+								}
+							]
+						},
+						"description": "Get tasks sorted by due date"
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 Collaboration",
+			"item": [
+				{
+					"name": "Add Collaborator",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": 1,\n    \"collaboratorUsername\": \"jane\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/collaborator/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "collaborator", "add"]
+						},
+						"description": "Add a collaborator to a task"
+					}
+				},
+				{
+					"name": "Remove Collaborator",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": 1,\n    \"collaboratorUsername\": \"jane\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/collaborator/remove",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "collaborator", "remove"]
+						},
+						"description": "Remove a collaborator from a task"
+					}
+				}
+			]
+		}
+	]
+}
