@@ -1,0 +1,85 @@
+# =============================================================================
+# Docker Compose for ToDo Application
+# Includes PostgreSQL database and application
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: todoapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: todoapp
+      POSTGRES_USER: todouser
+      POSTGRES_PASSWORD: todopassword
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/postgresql-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - todoapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todouser -d todoapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ToDo Application
+  app:
+    build: .
+    container_name: todoapp
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+      
+      # Database Configuration
+      DATABASE_URL: jdbc:postgresql://postgres:5432/todoapp
+      DATABASE_USERNAME: todouser
+      DATABASE_PASSWORD: todopassword
+      
+      # Security Configuration (CHANGE THESE IN PRODUCTION!)
+      JWT_SECRET: ProductionJWTSecretKeyForToDoApplicationThatNeedsToBeAtLeast256BitsLongForHS256Algorithm
+      SECURITY_PASSWORD_PEPPER: ProductionPasswordPepperForAdditionalSecurity
+      SECRET_KEY: ProductionSecretKeyForToDo
+      
+      # Application Configuration
+      DDL_AUTO: update
+      LOG_LEVEL: INFO
+      
+      # Server Configuration
+      SERVER_PORT: 8080
+      
+      # JVM Configuration
+      JAVA_OPTS: -Xmx512m -Xms256m -XX:+UseContainerSupport
+      
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - todoapp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+
+# Networks
+networks:
+  todoapp-network:
+    driver: bridge

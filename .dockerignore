@@ -1,0 +1,88 @@
+# =============================================================================
+# Docker ignore file to optimize build context
+# =============================================================================
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+README*
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+target/
+*.jar
+*.war
+*.class
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env*
+!.env.template
+
+# Test files
+src/test/
+**/test/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+
+# Maven wrapper (already copied specifically)
+.mvn/wrapper/maven-wrapper.jar
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Other build tools
+gradle/
+gradlew*
+build.gradle*
+
+# Angular/Frontend (if in same repo)
+Angular/
+frontend/
+src/main/webapp/
+
+# Database files
+*.db
+*.sqlite*
+
+# Backup files
+*.bak
+*.backup

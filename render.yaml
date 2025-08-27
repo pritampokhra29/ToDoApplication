@@ -1,23 +1,58 @@
 services:
+  # Web Application (Database already provisioned separately)
   - type: web
     name: todolist-api
     env: java
-    buildCommand: mvn clean package -DskipTests
-    startCommand: java -jar target/ToDo-0.0.1-SNAPSHOT.jar
+    buildCommand: mvn clean package -DskipTests -Dmaven.javadoc.skip=true
+    startCommand: java -Xmx512m -Xms256m -Djava.security.egd=file:/dev/./urandom -jar target/ToDo-0.0.1-SNAPSHOT.jar
     envVars:
+      # Server Configuration
       - key: PORT
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: JWT_SECRET
-        sync: false  # This will be set manually in Render dashboard
+        
+      # Database Configuration (Manual setup - use your existing database)
+      - key: DATABASE_URL
+        sync: false  # Set this manually with your existing database URL
+      - key: DDL_AUTO
+        value: update
+      - key: SQL_INIT_MODE
+        value: never
+        
+      # Security Configuration (Set manually in Render dashboard)
       - key: JWT_ENABLED
         value: true
+      - key: JWT_SECRET
+        sync: false  # Set this manually with a secure 256-bit key
       - key: SECURITY_PASSWORD_PEPPER
-        sync: false  # This will be set manually in Render dashboard
+        sync: false  # Set this manually with a secure pepper
+      - key: SECRET_KEY
+        sync: false  # Set this manually with a secure key
+        
+      # Logging Configuration
+      - key: LOG_LEVEL
+        value: INFO
+      - key: HIBERNATE_SQL_LOG_LEVEL
+        value: WARN
+      - key: SHOW_SQL
+        value: false
+        
+      # Performance Configuration
+      - key: DB_POOL_SIZE
+        value: 10
+      - key: DB_MIN_IDLE
+        value: 2
+        
     plan: free
     autoDeploy: true
     disk:
       name: todolist-disk
       mountPath: /app/logs
       sizeGB: 1
+    # Automatically connect to the PostgreSQL database
+    envVarGroups:
+      - name: DATABASE_URL
+        fromDatabase:
+          name: todolist-postgres
+          property: connectionString

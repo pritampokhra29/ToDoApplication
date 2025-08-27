@@ -1,0 +1,57 @@
+# =============================================================================
+# Docker Compose Override for Production
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# =============================================================================
+
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      # Use stronger password in production
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      # Use named volume for production data persistence
+      - postgres_prod_data:/var/lib/postgresql/data
+      # Remove schema initialization in production
+      - /dev/null:/docker-entrypoint-initdb.d/01-schema.sql
+    # Don't expose port in production (internal only)
+    ports: []
+
+  app:
+    environment:
+      # Override with production environment variables
+      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/todoapp}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-todouser}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      
+      # Production security (must be provided via environment)
+      JWT_SECRET: ${JWT_SECRET}
+      SECURITY_PASSWORD_PEPPER: ${SECURITY_PASSWORD_PEPPER}
+      SECRET_KEY: ${SECRET_KEY}
+      
+      # Production database settings
+      DDL_AUTO: validate
+      SQL_INIT_MODE: never
+      SHOW_SQL: false
+      
+      # Production logging
+      LOG_LEVEL: WARN
+      HIBERNATE_SQL_LOG_LEVEL: WARN
+      
+      # Production JVM settings
+      JAVA_OPTS: -Xmx1g -Xms512m -XX:+UseContainerSupport -XX:+UseG1GC
+      
+    # Production port mapping (can be changed)
+    ports:
+      - "${PORT:-8080}:8080"
+    
+    # Production volume mounts
+    volumes:
+      - app_logs:/app/logs
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  app_logs:
+    driver: local
