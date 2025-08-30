@@ -39,7 +39,7 @@ jobs:
     - name: Build application
       run: |
         cd ToDoList
-        npm run build -- --configuration=static --base-href="/ToDoApplication-Frontend/"
+        npm run build -- --configuration=static --base-href="/ToDoApplication/"
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
